@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+itsdangerous
+sqlmodel
+pydantic[email]
+python-jose
+passlib
+python-dotenv
+slowapi
+authlib
+pyotp
+qrcode[pil]
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock
+httpx
