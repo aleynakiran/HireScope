@@ -83,7 +83,7 @@ def get_current_user(
         raise credentials_exception from exc
 
     user = db.exec(select(User).where(User.id == int(sub))).first()
-    if not user:
+    if not user or not user.is_active:
         raise credentials_exception
     return user
 

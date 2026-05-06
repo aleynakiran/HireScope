@@ -8,8 +8,14 @@ from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session, select
 from starlette.middleware.sessions import SessionMiddleware
 
-from database import create_db_and_tables, engine, seed_positions
-from middleware.security import limiter
+from database import (
+    create_db_and_tables,
+    engine,
+    migrate_legacy_sqlite_schema,
+    seed_positions,
+    seed_skill_categories,
+)
+from middleware.security import limiter, security_headers_middleware
 from models.user import User
 from routers import (
     admin_router,
@@ -61,12 +67,15 @@ app.include_router(sessions_router)
 app.include_router(answers_router)
 app.include_router(evaluations_router)
 app.include_router(admin_router)
+app.middleware("http")(security_headers_middleware)
 
 
 @app.on_event("startup")
 def on_startup() -> None:
     create_db_and_tables()
+    migrate_legacy_sqlite_schema()
     seed_positions()
+    seed_skill_categories()
 
     bootstrap_admin_email = os.getenv("BOOTSTRAP_ADMIN_EMAIL")
     if bootstrap_admin_email:

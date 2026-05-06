@@ -1,12 +1,13 @@
 # HireScope
 
-HireScope is a SaaS-style technical interview practice platform: AI-generated question sets, rubric-style scoring, charts for progress, JWT auth, optional OAuth (Google/GitHub), optional TOTP 2FA, rate limiting, and an admin dashboard for role management.
+HireScope is a SaaS-style technical interview practice platform: AI-generated question sets, rubric-style scoring, charts for progress, JWT auth, multi-provider social login, multi-method 2FA, rate limiting/security headers, and an admin dashboard with audit logs.
 
 ## Tech stack
 
 - **Backend**: FastAPI + SQLModel (SQLite locally, Postgres-ready via `DATABASE_URL`)
 - **Frontend**: React + Vite + React Router + Axios + Recharts
 - **Tests**: `pytest` (+ coverage gate) and Playwright E2E
+- **Deploy**: Docker Compose + Nginx + GitHub Actions deploy workflow (`.github/workflows/deploy.yml`)
 
 ## Local development
 
@@ -24,7 +25,8 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 Notes:
 
 - Password hashing uses **`pbkdf2_sha256`** via Passlib (stable across Python/bcrypt versions).
-- OAuth providers require client IDs/secrets + redirect URLs configured to match your backend callback URLs.
+- OAuth providers supported in backend router: Google, GitHub, LinkedIn, Microsoft.
+- 2FA methods supported: TOTP, email OTP, SMS OTP (Twilio), backup codes.
 - Optional **admin bootstrap**: register a user, set `BOOTSTRAP_ADMIN_EMAIL` in `.env` to that email, restart API → user becomes `admin`.
 
 ### Frontend
@@ -60,11 +62,22 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-## Deployment sketch
+## Deployment sketch (VPS)
 
-- **Frontend**: Vercel (`FRONTEND_URL` must match your deployed SPA origin for OAuth redirects/CORS).
-- **Backend**: Railway (set env vars from `.env.example`, especially OAuth redirect URIs).
-- **Database**: Railway Postgres (`DATABASE_URL`).
+Docker assets are under `docker/`:
+
+- `docker/Dockerfile.backend`
+- `docker/Dockerfile.frontend`
+- `docker/docker-compose.yml`
+- `docker/nginx.conf`
+
+Example:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+Use `deploy.yml` with repository secrets (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`) for automatic SSH deploy after CI succeeds on `main`.
 
 ## CI
 

@@ -16,7 +16,7 @@ export default function Login() {
     setError("");
     try {
       const res = await apiClient.post("/auth/login", { email, password });
-      if (res.data.totp_required) {
+      if (res.data.two_factor_required || res.data.totp_required) {
         sessionStorage.setItem("twofa_temp_token", res.data.temp_token);
         navigate("/2fa-verify");
         return;
@@ -75,6 +75,12 @@ export default function Login() {
           </a>
           <a className="oauth-btn" data-testid="github-login-btn" href={`${apiBaseURL}/oauth/github`}>
             Continue with GitHub
+          </a>
+          <a className="oauth-btn" data-testid="linkedin-login-btn" href={`${apiBaseURL}/oauth/linkedin`}>
+            Continue with LinkedIn
+          </a>
+          <a className="oauth-btn" data-testid="microsoft-login-btn" href={`${apiBaseURL}/oauth/microsoft`}>
+            Continue with Microsoft
           </a>
         </div>
 

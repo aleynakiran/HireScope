@@ -7,8 +7,10 @@ import { formatApiError } from "../utils/formatApiError";
 export default function TwoFAVerify() {
   const navigate = useNavigate();
   const { loginWithToken } = useAuth();
-  const [totpCode, setTotpCode] = useState("");
+  const [method, setMethod] = useState("totp");
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -21,7 +23,8 @@ export default function TwoFAVerify() {
     try {
       const res = await apiClient.post("/auth/login/verify-2fa", {
         temp_token: tempToken,
-        totp_code: totpCode,
+        method,
+        code,
       });
       sessionStorage.removeItem("twofa_temp_token");
       await loginWithToken(res.data.access_token);
@@ -31,29 +34,66 @@ export default function TwoFAVerify() {
     }
   }
 
+  async function sendOtp() {
+    setError("");
+    setInfo("");
+    try {
+      if (method === "email") {
+        await apiClient.post("/auth/2fa/email/send", {});
+        setInfo("Email OTP sent.");
+      } else if (method === "sms") {
+        await apiClient.post("/auth/2fa/sms/send", {});
+        setInfo("SMS OTP sent.");
+      }
+    } catch (err) {
+      setError(formatApiError(err, "Could not send OTP"));
+    }
+  }
+
   return (
     <div className="container">
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Verify 2FA</h2>
         <form onSubmit={onSubmit}>
+          <label className="label" htmlFor="method">
+            Verification method
+          </label>
+          <select
+            id="method"
+            className="select"
+            value={method}
+            onChange={(e) => setMethod(e.target.value)}
+          >
+            <option value="totp">Authenticator (TOTP)</option>
+            <option value="email">Email OTP</option>
+            <option value="sms">SMS OTP</option>
+            <option value="backup">Backup code</option>
+          </select>
+
           <label className="label" htmlFor="totp_code">
-            Authenticator code
+            Code
           </label>
           <input
             id="totp_code"
             name="totp_code"
             className="input"
-            value={totpCode}
-            onChange={(e) => setTotpCode(e.target.value)}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
             inputMode="numeric"
             required
           />
           <div style={{ marginTop: 14 }}>
+            {(method === "email" || method === "sms") && (
+              <button className="btn" type="button" onClick={sendOtp} style={{ marginRight: 8 }}>
+                Send OTP
+              </button>
+            )}
             <button className="btn primary" type="submit">
               Continue
             </button>
           </div>
         </form>
+        {info ? <div style={{ marginTop: 10, color: "var(--accent-2)" }}>{info}</div> : null}
         {error ? <div className="error-message">{error}</div> : null}
       </div>
     </div>

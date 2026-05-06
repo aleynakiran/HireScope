@@ -6,6 +6,8 @@ export default function TwoFASetup() {
   const [secret, setSecret] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [code, setCode] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [backupCodes, setBackupCodes] = useState([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -13,9 +15,9 @@ export default function TwoFASetup() {
     setError("");
     setMessage("");
     try {
-      const res = await apiClient.post("/2fa/setup");
+      const res = await apiClient.post("/auth/2fa/totp/setup");
       setSecret(res.data.secret);
-      setQrDataUrl(`data:image/png;base64,${res.data.qr_code}`);
+      setQrDataUrl(res.data.qr_code);
     } catch (err) {
       setError(formatApiError(err, "Setup failed"));
     }
@@ -25,24 +27,44 @@ export default function TwoFASetup() {
     setError("");
     setMessage("");
     try {
-      await apiClient.post("/2fa/verify", { code });
-      setMessage("2FA enabled.");
+      await apiClient.post("/auth/2fa/totp/verify", { otp: code });
+      setMessage("TOTP 2FA enabled.");
     } catch (err) {
       setError(formatApiError(err, "Verification failed"));
     }
   }
 
-  async function disable() {
+  async function enableEmailOtp() {
     setError("");
     setMessage("");
     try {
-      await apiClient.post("/2fa/disable");
-      setSecret("");
-      setQrDataUrl("");
-      setCode("");
-      setMessage("2FA disabled.");
+      await apiClient.post("/auth/2fa/email/setup", { enabled: true });
+      setMessage("Email OTP enabled. Login flow will ask for email OTP.");
     } catch (err) {
-      setError(formatApiError(err, "Disable failed"));
+      setError(formatApiError(err, "Email OTP setup failed"));
+    }
+  }
+
+  async function enableSmsOtp() {
+    setError("");
+    setMessage("");
+    try {
+      await apiClient.post("/auth/2fa/sms/setup", { phone_number: phoneNumber });
+      setMessage("SMS OTP enabled.");
+    } catch (err) {
+      setError(formatApiError(err, "SMS OTP setup failed"));
+    }
+  }
+
+  async function generateBackupCodes() {
+    setError("");
+    setMessage("");
+    try {
+      const res = await apiClient.post("/auth/2fa/backup-codes/generate");
+      setBackupCodes(res.data.backup_codes || []);
+      setMessage("Backup codes generated. Save them securely.");
+    } catch (err) {
+      setError(formatApiError(err, "Backup code generation failed"));
     }
   }
 
@@ -56,10 +78,7 @@ export default function TwoFASetup() {
 
         <div className="row" style={{ marginTop: 12 }}>
           <button type="button" className="btn primary" onClick={generate}>
-            Generate QR code
-          </button>
-          <button type="button" className="btn danger" onClick={disable}>
-            Disable 2FA
+            Setup TOTP (QR)
           </button>
         </div>
 
@@ -91,6 +110,37 @@ export default function TwoFASetup() {
             Verify & activate
           </button>
         </div>
+
+        <hr style={{ margin: "20px 0", borderColor: "var(--border)" }} />
+        <div className="label">Email OTP</div>
+        <button type="button" className="btn" onClick={enableEmailOtp}>
+          Enable Email OTP
+        </button>
+
+        <div className="label" style={{ marginTop: 16 }}>
+          SMS OTP
+        </div>
+        <input
+          className="input"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          placeholder="+905xxxxxxxxx"
+        />
+        <div style={{ marginTop: 8 }}>
+          <button type="button" className="btn" onClick={enableSmsOtp}>
+            Enable SMS OTP
+          </button>
+        </div>
+
+        <div className="label" style={{ marginTop: 16 }}>
+          Backup codes
+        </div>
+        <button type="button" className="btn" onClick={generateBackupCodes}>
+          Generate backup codes
+        </button>
+        {backupCodes.length > 0 ? (
+          <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{backupCodes.join("\n")}</pre>
+        ) : null}
 
         {error ? <div className="error-message">{error}</div> : null}
         {message ? <div style={{ marginTop: 10, color: "var(--accent-2)" }}>{message}</div> : null}

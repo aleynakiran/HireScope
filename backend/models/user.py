@@ -12,6 +12,11 @@ class User(SQLModel, table=True):
     role: str = "user"
     is_2fa_enabled: bool = False
     totp_secret: Optional[str] = None
+    totp_enabled: bool = False
+    email_otp_enabled: bool = False
+    sms_otp_enabled: bool = False
+    phone_number: Optional[str] = None
     oauth_provider: Optional[str] = None
     oauth_id: Optional[str] = None
+    is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)

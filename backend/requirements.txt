@@ -10,6 +10,9 @@ slowapi
 authlib
 pyotp
 qrcode[pil]
+twilio
+google-generativeai
+alembic
 pytest
 pytest-asyncio
 pytest-cov

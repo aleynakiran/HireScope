@@ -4,7 +4,19 @@ from sqlmodel import Session, select
 from database import get_db
 from middleware.security import limiter
 from models.user import User
-from schemas.auth import LoginRequest, RegisterRequest, Verify2FARequest
+from schemas.auth import (
+    EmailSendRequest,
+    EmailSetupRequest,
+    EmailVerifyRequest,
+    LoginRequest,
+    RegisterRequest,
+    SmsSendRequest,
+    SmsSetupRequest,
+    SmsVerifyRequest,
+    Verify2FARequest,
+)
+from services.backup_code_service import generate_backup_codes, verify_backup_code
+from services.email_service import issue_email_otp, send_email_otp, verify_email_otp
 from services.auth_service import (
     create_access_token,
     create_temp_token_for_2fa,
@@ -13,6 +25,7 @@ from services.auth_service import (
     user_id_from_temp_2fa_token,
     verify_password,
 )
+from services.sms_service import issue_sms_otp, send_sms_otp, verify_sms_otp
 from services.twofa_service import verify_totp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -41,11 +54,23 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
     user = db.exec(select(User).where(User.email == payload.email)).first()
     if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if user.is_2fa_enabled:
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+    if user.is_2fa_enabled or user.email_otp_enabled or user.sms_otp_enabled:
         temp = create_temp_token_for_2fa(user.id)
-        return {"totp_required": True, "temp_token": temp, "token_type": "pending"}
+        return {
+            "two_factor_required": True,
+            "totp_required": True,
+            "temp_token": temp,
+            "token_type": "pending",
+        }
     token = create_access_token(user.id)
-    return {"access_token": token, "token_type": "bearer", "totp_required": False}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "two_factor_required": False,
+        "totp_required": False,
+    }
 
 
 @router.post("/login/verify-2fa")
@@ -55,10 +80,117 @@ def verify_2fa_login(request: Request, payload: Verify2FARequest, db: Session = 
     user = db.get(User, user_id)
     if not user or not user.is_2fa_enabled:
         raise HTTPException(status_code=401, detail="Invalid verification request")
-    if not verify_totp(user.totp_secret, payload.totp_code):
-        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+    method = payload.method
+    valid = False
+    if method == "totp":
+        valid = bool(user.is_2fa_enabled and verify_totp(user.totp_secret, payload.code))
+    elif method == "email":
+        valid = bool(user.email_otp_enabled and verify_email_otp(user.email, payload.code))
+    elif method == "sms":
+        valid = bool(
+            user.sms_otp_enabled and user.phone_number and verify_sms_otp(user.phone_number, payload.code)
+        )
+    elif method == "backup":
+        valid = verify_backup_code(user.id, payload.code, db)
+    if not valid:
+        raise HTTPException(status_code=400, detail="Invalid 2FA verification code")
     token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/2fa/totp/setup")
+@limiter.limit("10/minute")
+def setup_totp(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from services.twofa_service import generate_qr_code, generate_totp_secret
+
+    secret = generate_totp_secret()
+    current_user.totp_secret = secret
+    db.add(current_user)
+    db.commit()
+    qr_code = generate_qr_code(secret, current_user.email)
+    return {"secret": secret, "qr_code": f"data:image/png;base64,{qr_code}"}
+
+
+@router.post("/2fa/totp/verify")
+@limiter.limit("10/minute")
+def verify_totp_setup(
+    request: Request, body: EmailVerifyRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if not current_user.totp_secret or not verify_totp(current_user.totp_secret, body.otp):
+        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+    current_user.is_2fa_enabled = True
+    current_user.totp_enabled = True
+    db.add(current_user)
+    db.commit()
+    return {"message": "TOTP 2FA enabled"}
+
+
+@router.post("/2fa/email/setup")
+def setup_email_2fa(
+    payload: EmailSetupRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    current_user.email_otp_enabled = payload.enabled
+    db.add(current_user)
+    db.commit()
+    return {"message": "Email OTP updated", "enabled": current_user.email_otp_enabled}
+
+
+@router.post("/2fa/email/send")
+@limiter.limit("10/minute")
+async def send_email_2fa(request: Request, payload: EmailSendRequest, current_user: User = Depends(get_current_user)):
+    if not current_user.email_otp_enabled:
+        raise HTTPException(status_code=400, detail="Email OTP is not enabled")
+    otp = issue_email_otp(current_user.email)
+    await send_email_otp(current_user.email, otp)
+    return {"message": "Email OTP sent"}
+
+
+@router.post("/2fa/email/verify")
+def verify_email_2fa(body: EmailVerifyRequest, current_user: User = Depends(get_current_user)):
+    if not verify_email_otp(current_user.email, body.otp):
+        raise HTTPException(status_code=400, detail="Invalid email OTP")
+    return {"message": "Email OTP verified"}
+
+
+@router.post("/2fa/sms/setup")
+def setup_sms_2fa(payload: SmsSetupRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.phone_number = payload.phone_number
+    current_user.sms_otp_enabled = True
+    db.add(current_user)
+    db.commit()
+    return {"message": "SMS OTP enabled", "phone_number": current_user.phone_number}
+
+
+@router.post("/2fa/sms/send")
+@limiter.limit("10/minute")
+async def send_sms_2fa(request: Request, payload: SmsSendRequest, current_user: User = Depends(get_current_user)):
+    if not current_user.sms_otp_enabled or not current_user.phone_number:
+        raise HTTPException(status_code=400, detail="SMS OTP is not enabled")
+    otp = issue_sms_otp(current_user.phone_number)
+    await send_sms_otp(current_user.phone_number, otp)
+    return {"message": "SMS OTP sent"}
+
+
+@router.post("/2fa/sms/verify")
+def verify_sms_2fa(body: SmsVerifyRequest, current_user: User = Depends(get_current_user)):
+    if not current_user.phone_number or not verify_sms_otp(current_user.phone_number, body.otp):
+        raise HTTPException(status_code=400, detail="Invalid SMS OTP")
+    return {"message": "SMS OTP verified"}
+
+
+@router.post("/2fa/backup-codes/generate")
+def create_backup_codes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    codes = generate_backup_codes(current_user.id, db, count=8)
+    return {"backup_codes": codes}
+
+
+@router.post("/2fa/backup-codes/verify")
+def check_backup_code(body: Verify2FARequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if body.method != "backup":
+        raise HTTPException(status_code=400, detail="Use method='backup' for this endpoint")
+    if not verify_backup_code(current_user.id, body.code, db):
+        raise HTTPException(status_code=400, detail="Invalid backup code")
+    return {"message": "Backup code verified"}
 
 
 @router.get("/me")
@@ -69,4 +201,9 @@ def me(current_user: User = Depends(get_current_user)) -> dict:
         "full_name": current_user.full_name,
         "role": current_user.role,
         "is_2fa_enabled": current_user.is_2fa_enabled,
+        "totp_enabled": current_user.totp_enabled,
+        "email_otp_enabled": current_user.email_otp_enabled,
+        "sms_otp_enabled": current_user.sms_otp_enabled,
+        "phone_number": current_user.phone_number,
+        "is_active": current_user.is_active,
     }
