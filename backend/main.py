@@ -8,6 +8,9 @@ from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session, select
 from starlette.middleware.sessions import SessionMiddleware
 
+# Load .env before importing modules that read env at import-time (e.g. OAuth client registration).
+load_dotenv()
+
 from database import (
     create_db_and_tables,
     engine,
@@ -22,14 +25,13 @@ from routers import (
     answers_router,
     auth_router,
     evaluations_router,
+    insights_router,
     oauth_router,
     positions_router,
     questions_router,
     sessions_router,
     twofa_router,
 )
-
-load_dotenv()
 
 
 def _cors_allow_origins() -> list[str]:
@@ -66,6 +68,7 @@ app.include_router(questions_router)
 app.include_router(sessions_router)
 app.include_router(answers_router)
 app.include_router(evaluations_router)
+app.include_router(insights_router)
 app.include_router(admin_router)
 app.middleware("http")(security_headers_middleware)
 

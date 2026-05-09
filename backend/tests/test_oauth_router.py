@@ -11,3 +11,9 @@ def test_github_oauth_unconfigured_returns_503(client: TestClient, monkeypatch) 
     monkeypatch.setenv("GITHUB_CLIENT_ID", "")
     res = client.get("/oauth/github", follow_redirects=False)
     assert res.status_code == 503
+
+
+def test_discord_oauth_unconfigured_returns_503(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setenv("DISCORD_CLIENT_ID", "")
+    res = client.get("/oauth/discord", follow_redirects=False)
+    assert res.status_code == 503

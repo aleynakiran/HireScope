@@ -62,6 +62,32 @@ def test_evaluations_payload(client: TestClient, auth_headers: dict[str, str], m
     body = res.json()
     assert body["average_score"] == 9
     assert body["items"][0]["evaluation"]["score"] == 9
+    assert "answer_content" in body["items"][0]
+    assert len(body["items"][0]["answer_content"]) > 0
+
+
+def test_model_answer_endpoint(client: TestClient, auth_headers: dict[str, str], monkeypatch) -> None:
+    async def fake_model_answer(*_args, **_kwargs):
+        return {
+            "model_answer": "Ideal interview response with trade-offs.",
+            "key_points": ["a", "b", "c", "d"],
+        }
+
+    monkeypatch.setattr("routers.evaluations.generate_model_answer", fake_model_answer)
+    session_id = _session_with_one_answer(client, auth_headers, monkeypatch)
+    answer_id = client.get(f"/evaluations/{session_id}", headers=auth_headers).json()["items"][0][
+        "answer_id"
+    ]
+
+    res = client.post(
+        f"/evaluations/{session_id}/model-answer",
+        headers=auth_headers,
+        json={"answer_id": answer_id},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["model_answer"].startswith("Ideal")
+    assert len(data["key_points"]) == 4
 
 
 def test_complete_session(client: TestClient, auth_headers: dict[str, str], monkeypatch) -> None:

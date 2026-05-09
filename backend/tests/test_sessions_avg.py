@@ -25,4 +25,4 @@ def test_sessions_average_score_when_empty(client: TestClient, auth_headers: dic
     )
 
     rows = client.get("/sessions", headers=auth_headers).json()
-    assert rows[-1]["average_score"] is None
+    assert rows[0]["average_score"] is None

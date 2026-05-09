@@ -99,8 +99,8 @@ export default function Register() {
           <a className="oauth-btn" data-testid="linkedin-login-btn" href={`${apiBaseURL}/oauth/linkedin`}>
             Continue with LinkedIn
           </a>
-          <a className="oauth-btn" data-testid="microsoft-login-btn" href={`${apiBaseURL}/oauth/microsoft`}>
-            Continue with Microsoft
+          <a className="oauth-btn" data-testid="discord-login-btn" href={`${apiBaseURL}/oauth/discord`}>
+            Continue with Discord
           </a>
         </div>
 

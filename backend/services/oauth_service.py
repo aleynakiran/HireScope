@@ -26,18 +26,16 @@ oauth.register(
     name="linkedin",
     client_id=os.getenv("LINKEDIN_CLIENT_ID", ""),
     client_secret=os.getenv("LINKEDIN_CLIENT_SECRET", ""),
-    authorize_url="https://www.linkedin.com/oauth/v2/authorization",
-    access_token_url="https://www.linkedin.com/oauth/v2/accessToken",
-    api_base_url="https://api.linkedin.com/v2/",
-    client_kwargs={"scope": "r_liteprofile r_emailaddress"},
+    server_metadata_url="https://www.linkedin.com/oauth/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid profile email"},
 )
 
 oauth.register(
-    name="microsoft",
-    client_id=os.getenv("MICROSOFT_CLIENT_ID", ""),
-    client_secret=os.getenv("MICROSOFT_CLIENT_SECRET", ""),
-    server_metadata_url=(
-        "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
-    ),
-    client_kwargs={"scope": "openid email profile User.Read"},
+    name="discord",
+    client_id=os.getenv("DISCORD_CLIENT_ID", ""),
+    client_secret=os.getenv("DISCORD_CLIENT_SECRET", ""),
+    authorize_url="https://discord.com/api/oauth2/authorize",
+    access_token_url="https://discord.com/api/oauth2/token",
+    api_base_url="https://discord.com/api/",
+    client_kwargs={"scope": "identify email"},
 )

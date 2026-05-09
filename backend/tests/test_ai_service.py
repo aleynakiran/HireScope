@@ -23,6 +23,18 @@ async def test_evaluate_prompt_injection() -> None:
 
 
 @pytest.mark.asyncio
+async def test_generate_model_answer_fallback_shape() -> None:
+    out = await ai_service.generate_model_answer(
+        "Explain CAP theorem",
+        ["consistency", "availability", "partition"],
+        "core",
+    )
+    assert "model_answer" in out and len(out["model_answer"]) > 400
+    assert isinstance(out["key_points"], list)
+    assert len(out["key_points"]) >= 6
+
+
+@pytest.mark.asyncio
 async def test_evaluate_keyword_boost() -> None:
     out = await ai_service.evaluate_answer(
         "Question?",

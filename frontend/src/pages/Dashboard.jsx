@@ -1,26 +1,50 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { apiClient } from "../api/client";
+import FocusAreasHub from "../components/FocusAreasHub";
 
 export default function Dashboard() {
   const [sessions, setSessions] = useState([]);
   const [error, setError] = useState("");
+  const [hub, setHub] = useState(null);
+  const [hubLoading, setHubLoading] = useState(true);
+  const [hubError, setHubError] = useState("");
+
+  const refreshDashboard = useCallback(async () => {
+    setHubLoading(true);
+    setHubError("");
+    setError("");
+    try {
+      const [sessionsRes, hubRes] = await Promise.all([
+        apiClient.get("/sessions"),
+        apiClient.get("/insights/improvement-hub"),
+      ]);
+      setSessions(sessionsRes.data);
+      setHub(hubRes.data);
+    } catch {
+      setError("Could not load sessions.");
+      setHubError("Could not load improvement hub.");
+      setSessions([]);
+      setHub(null);
+    } finally {
+      setHubLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiClient.get("/sessions");
-        if (!cancelled) setSessions(res.data);
-      } catch (e) {
-        if (!cancelled) setError("Could not load sessions.");
+    refreshDashboard();
+  }, [refreshDashboard]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        refreshDashboard();
       }
-    })();
-    return () => {
-      cancelled = true;
     };
-  }, []);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [refreshDashboard]);
 
   const chartData = useMemo(() => {
     const lastFive = sessions.slice(0, 5).reverse();
@@ -45,17 +69,45 @@ export default function Dashboard() {
 
       {error ? <div className="error-message">{error}</div> : null}
 
-      <div className="card" style={{ marginBottom: 14 }}>
-        <strong>Last 5 sessions (average score)</strong>
-        <div style={{ width: "100%", height: 260, marginTop: 12 }}>
-          <ResponsiveContainer>
-            <LineChart data={chartData}>
-              <XAxis dataKey="label" stroke="#9fb0c5" />
-              <YAxis stroke="#9fb0c5" domain={[0, 10]} />
-              <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#5aa7ff" strokeWidth={3} dot />
-            </LineChart>
-          </ResponsiveContainer>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <div className="card">
+          <strong>Last 5 sessions (average score)</strong>
+          <div style={{ width: "100%", height: 260, marginTop: 12 }}>
+            <ResponsiveContainer>
+              <LineChart data={chartData}>
+                <XAxis dataKey="label" stroke="#9fb0c5" />
+                <YAxis stroke="#9fb0c5" domain={[0, 10]} />
+                <Tooltip />
+                <Line type="monotone" dataKey="score" stroke="#5aa7ff" strokeWidth={3} dot />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <FocusAreasHub data={hub} loading={hubLoading} error={hubError} />
+
+        <div className="card">
+          <div className="muted">Total sessions</div>
+          <div style={{ fontSize: 34, fontWeight: 800, marginTop: 8 }}>{sessions.length}</div>
+          <div className="muted" style={{ marginTop: 14 }}>
+            Completed
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>
+            {sessions.filter((s) => s.status === "completed").length}
+          </div>
+          <div className="muted" style={{ marginTop: 14 }}>
+            Active
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>
+            {sessions.filter((s) => s.status === "active").length}
+          </div>
         </div>
       </div>
 

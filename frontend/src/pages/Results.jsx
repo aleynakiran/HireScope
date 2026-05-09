@@ -33,6 +33,8 @@ export default function Results() {
   }
 
   const avg = data.average_score;
+  const avgClass =
+    typeof avg !== "number" ? "" : avg >= 8 ? "score-high" : avg >= 5 ? "score-mid" : "score-low";
 
   return (
     <div className="container">
@@ -51,10 +53,27 @@ export default function Results() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="muted">Overall average score</div>
-        <div style={{ fontSize: 56, fontWeight: 800, color: "var(--accent-2)", marginTop: 6 }}>
-          {avg == null ? "—" : avg.toFixed(1)}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="muted">Overall average score</div>
+          <div
+            className={`overall-score ${avgClass}`.trim()}
+            style={{ fontSize: 56, fontWeight: 800, marginTop: 6 }}
+          >
+            {avg == null ? "—" : avg.toFixed(1)}
+          </div>
+        </div>
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="muted">Verdict</div>
+          <div
+            className={avg == null ? "" : avg >= 8 ? "score-high" : avg >= 5 ? "score-mid" : "score-low"}
+            style={{ fontSize: 28, fontWeight: 800, marginTop: 10 }}
+          >
+            {avg == null ? "Pending" : avg >= 8 ? "Strong" : avg >= 5 ? "Good" : "Needs work"}
+          </div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            Based on technical depth, clarity and consistency across answers.
+          </p>
         </div>
       </div>
 
@@ -65,7 +84,7 @@ export default function Results() {
       <h3>Per question</h3>
       <div style={{ display: "grid", gap: 12 }}>
         {(data.items || []).map((item) => (
-          <EvaluationCard key={item.answer_id} item={item} />
+          <EvaluationCard key={item.answer_id} sessionId={sessionId} item={item} />
         ))}
       </div>
     </div>

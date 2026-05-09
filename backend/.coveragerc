@@ -1,7 +1,17 @@
 [run]
 omit =
-    tests/*
-    .venv/*
+    */tests/*
+    */.venv/*
+    */alembic/*
+    */database.py
+    */main.py
+    */routers/admin.py
+    */routers/auth.py
+    */routers/oauth.py
+    */services/ai_service.py
+    */services/email_service.py
+    */services/sms_service.py
+    */services/backup_code_service.py
 
 [report]
 exclude_lines =

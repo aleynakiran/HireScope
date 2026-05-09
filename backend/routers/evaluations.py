@@ -1,14 +1,17 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from database import get_db
+from middleware.security import limiter
 from models.answer import Answer
 from models.evaluation import Evaluation
 from models.question import Question
 from models.session import SessionModel
 from models.user import User
+from schemas.model_answer import ModelAnswerRequest
+from services.ai_service import generate_model_answer
 from services.auth_service import get_current_user
 
 router = APIRouter(prefix="/evaluations", tags=["evaluations"])
@@ -41,6 +44,7 @@ def session_evaluations(
                 "answer_id": ans.id,
                 "question_id": ans.question_id,
                 "question_content": question.content if question else "",
+                "answer_content": ans.content,
                 "evaluation": (
                     {
                         "score": ev.score,
@@ -56,3 +60,43 @@ def session_evaluations(
         )
 
     return {"items": items, "average_score": avg}
+
+
+@router.post("/{session_id}/model-answer")
+@limiter.limit("10/minute")
+async def model_answer(
+    request: Request,
+    session_id: int,
+    payload: ModelAnswerRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    session = db.get(SessionModel, session_id)
+    if not session or session.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    answer = db.get(Answer, payload.answer_id)
+    if (
+        not answer
+        or answer.session_id != session_id
+        or answer.user_id != user.id
+    ):
+        raise HTTPException(status_code=404, detail="Answer not found")
+
+    question = db.get(Question, answer.question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    try:
+        keywords = json.loads(question.expected_keywords or "[]")
+    except json.JSONDecodeError:
+        keywords = []
+    if not isinstance(keywords, list):
+        keywords = []
+
+    result = await generate_model_answer(
+        question.content,
+        [str(k) for k in keywords],
+        question.difficulty or "core",
+    )
+    return result

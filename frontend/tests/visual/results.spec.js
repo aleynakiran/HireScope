@@ -1,0 +1,30 @@
+import { expect, test } from "@playwright/test";
+
+test("results page visual regression", async ({ page, request }) => {
+  const email = `visual_${Date.now()}@test.dev`;
+  const password = "password123";
+  const baseURL = process.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+  await request.post(`${baseURL}/auth/register`, {
+    data: { email, password, full_name: "Visual User" },
+  });
+
+  await page.goto("/login");
+  await page.locator('[name="email"]').fill(email);
+  await page.locator('[name="password"]').fill(password);
+  await page.locator('button[type="submit"]').click();
+
+  await page.goto("/sessions/new");
+  await page.locator('input[type="checkbox"]').first().check();
+  await page.locator('[data-testid="start-session-btn"]').click();
+
+  const answer = "This answer includes concrete details and examples to pass minimum validation.";
+  for (let i = 0; i < 5; i += 1) {
+    await page.locator("textarea").fill(answer);
+    await page.getByRole("button", { name: /Submit & continue|Complete interview/ }).click();
+    if ((await page.url()).includes("/results/")) break;
+  }
+
+  await expect(page).toHaveURL(/\/results\/\d+$/);
+  await expect(page).toHaveScreenshot("results-page.png", { maxDiffPixels: 100 });
+});

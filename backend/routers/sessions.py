@@ -34,7 +34,11 @@ def _session_average_score(db: Session, session_id: int, user_id: int) -> float 
 
 @router.get("")
 def list_sessions(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    sessions = db.exec(select(SessionModel).where(SessionModel.user_id == user.id)).all()
+    sessions = db.exec(
+        select(SessionModel)
+        .where(SessionModel.user_id == user.id)
+        .order_by(SessionModel.created_at.desc())
+    ).all()
     result = []
     for s in sessions:
         position = db.get(Position, s.position_id)

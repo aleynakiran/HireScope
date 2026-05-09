@@ -25,7 +25,7 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 Notes:
 
 - Password hashing uses **`pbkdf2_sha256`** via Passlib (stable across Python/bcrypt versions).
-- OAuth providers supported in backend router: Google, GitHub, LinkedIn, Microsoft.
+- OAuth providers supported in backend router: Google, GitHub, LinkedIn, Discord.
 - 2FA methods supported: TOTP, email OTP, SMS OTP (Twilio), backup codes.
 - Optional **admin bootstrap**: register a user, set `BOOTSTRAP_ADMIN_EMAIL` in `.env` to that email, restart API → user becomes `admin`.
 
@@ -50,7 +50,7 @@ Backend CORS: if `FRONTEND_URL` is unset, both `http://localhost:5173` and `http
 
 ```bash
 cd backend
-pytest --cov=. --cov-config=.coveragerc --cov-fail-under=85
+pytest --cov=. --cov-config=.coveragerc --cov-fail-under=90
 ```
 
 ### Playwright (starts backend + frontend automatically)
@@ -82,3 +82,12 @@ Use `deploy.yml` with repository secrets (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`)
 ## CI
 
 GitHub Actions runs backend tests with coverage gating, builds the frontend, then runs Playwright against local servers.
+
+## Screenshots
+
+Add project screenshots under `screenshots/` for presentation and README embedding:
+
+- `screenshots/dashboard.png`
+- `screenshots/interview.png`
+- `screenshots/results.png`
+- `screenshots/admin.png`

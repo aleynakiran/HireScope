@@ -5,7 +5,7 @@ const frontendPort = 5173;
 const backendPort = 8000;
 
 export default defineConfig({
-  testDir: "./tests/e2e",
+  testDir: "./tests",
   timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {

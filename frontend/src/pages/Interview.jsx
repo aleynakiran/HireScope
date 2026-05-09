@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "../api/client";
 import { formatApiError } from "../utils/formatApiError";
 import QuestionCard from "../components/QuestionCard";
+import SessionWeakAreasModal from "../components/SessionWeakAreasModal";
 
 export default function Interview() {
   const { sessionId } = useParams();
@@ -11,6 +12,20 @@ export default function Interview() {
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [weakModalOpen, setWeakModalOpen] = useState(false);
+  const [finishingToResults, setFinishingToResults] = useState(false);
+
+  async function finishSessionAndViewResults() {
+    setFinishingToResults(true);
+    try {
+      await apiClient.put(`/sessions/${sessionId}/complete`);
+    } catch {
+      /* Still open results; session may already be completed */
+    } finally {
+      setFinishingToResults(false);
+    }
+    navigate(`/results/${sessionId}`);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -144,20 +159,23 @@ export default function Interview() {
         <div className="card">
           <strong>All questions answered</strong>
           <div style={{ marginTop: 12 }} className="row">
-            <button className="btn primary" type="button" onClick={() => navigate(`/results/${sessionId}`)}>
-              View results
-            </button>
             <button
-              className="btn"
+              className="btn primary"
               type="button"
-              onClick={async () => {
-                await apiClient.put(`/sessions/${sessionId}/complete`);
-                navigate(`/results/${sessionId}`);
-              }}
+              disabled={finishingToResults}
+              onClick={() => finishSessionAndViewResults()}
             >
-              Complete session
+              {finishingToResults ? "Opening…" : "View results"}
+            </button>
+            <button className="btn" type="button" onClick={() => setWeakModalOpen(true)}>
+              Weak areas
             </button>
           </div>
+          <SessionWeakAreasModal
+            sessionId={sessionId}
+            open={weakModalOpen}
+            onClose={() => setWeakModalOpen(false)}
+          />
         </div>
       ) : (
         <>

@@ -2,6 +2,7 @@ from .admin import router as admin_router
 from .answers import router as answers_router
 from .auth import router as auth_router
 from .evaluations import router as evaluations_router
+from .insights import router as insights_router
 from .oauth import router as oauth_router
 from .positions import router as positions_router
 from .questions import router as questions_router
@@ -17,5 +18,6 @@ __all__ = [
     "sessions_router",
     "answers_router",
     "evaluations_router",
+    "insights_router",
     "admin_router",
 ]
