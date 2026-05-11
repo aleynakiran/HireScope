@@ -101,33 +101,40 @@ GitHub Actions runs backend tests with coverage gating, builds the frontend, the
 
 ## Screenshots
 
-Place UI captures under `screenshots/` (for slides / instructor handoff). Suggested filenames:
+Running app (files in [`screenshots/`](./screenshots/)):
 
-| File | What to show |
-|------|----------------|
-| `login.png` | Login + social OAuth buttons |
-| `dashboard.png` | Logged-in dashboard, charts, session list |
-| `interview.png` | New interview / question flow |
-| `results.png` | Results summary, rubric, per-question feedback |
-| `admin.png` | Admin dashboard (roles / audit if applicable) |
-| `security-rate-limit-429.png` | DevTools Network: `POST /auth/login` → **429** |
-| `security-railway-variables.png` | Railway service variables (values masked) |
-| `security-headers-backend.png` | [securityheaders.com](https://securityheaders.com) scan of **backend** URL (e.g. `/health`) |
+**Login — email, password, and social OAuth**
 
-### Bundled diagnostics (from Cursor `assets/`)
+![Login](./screenshots/login.png)
 
-These three files were copied into `screenshots/` for ops/security context:
+**Dashboard overview**
 
-**Google OAuth configuration error (example `redirect_uri_mismatch`):**
+![Dashboard](./screenshots/dashboard.png)
 
-![Google OAuth error](./screenshots/security-google-oauth-error.png)
+**Dashboard — session list / interview history**
 
-**Railway deploy log (runtime error trace):**
+![Dashboard sessions](./screenshots/dashboard_sessions.png)
 
-![Railway deploy log](./screenshots/ops-railway-deploy-log.png)
+**New interview session**
 
-**Railway HTTP access log (e.g. OAuth callback status codes):**
+![New interview session](./screenshots/newinterview_session.png)
 
-![Railway HTTP logs](./screenshots/ops-railway-http-logs.png)
+**Per-question feedback / answer evolution**
 
-> **Note:** Only the PNGs present under the Cursor project `assets/` folder were copied. Add the table screenshots above (or drop more files into `assets/` and copy them) so the README can embed the full product walkthrough.
+![Question feedback](./screenshots/evolution_answers.png)
+
+**Model answer (“how would AI answer this?”)**
+
+![AI model answer](./screenshots/how_would_answer_ai.png)
+
+**Results summary**
+
+![Results](./screenshots/results.png)
+
+**Rate limiting — `POST /auth/login` → HTTP 429 (DevTools Network)**
+
+![Rate limit 429](./screenshots/429.png)
+
+**Railway — HireScope service variables (masked values)**
+
+![Railway variables](./screenshots/railway_hireScope_Variables.png)
