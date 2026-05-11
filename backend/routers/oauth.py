@@ -1,6 +1,7 @@
 import os
 
 import httpx
+from authlib.oidc.core.claims import CodeIDToken
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
@@ -14,6 +15,13 @@ from services.oauth_service import oauth
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+
+class _LinkedInCodeIDToken(CodeIDToken):
+    """LinkedIn OIDC id_tokens may omit `nonce` even when the auth request included one."""
+
+    def validate_nonce(self) -> None:
+        return
 
 
 def _redirect_missing_config(provider: str) -> None:
@@ -96,7 +104,9 @@ async def linkedin_login(request: Request):
 @router.get("/linkedin/callback")
 async def linkedin_callback(request: Request, db: Session = Depends(get_db)):
     _redirect_missing_config("LINKEDIN")
-    token = await oauth.linkedin.authorize_access_token(request)
+    token = await oauth.linkedin.authorize_access_token(
+        request, claims_cls=_LinkedInCodeIDToken
+    )
     userinfo = token.get("userinfo") or {}
     email = userinfo.get("email")
     sub = userinfo.get("sub")
