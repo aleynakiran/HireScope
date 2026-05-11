@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("complete full interview session", async ({ page, request }) => {
+  test.setTimeout(120_000);
   const email = `flow_${Date.now()}@test.dev`;
   const password = "password123";
 
@@ -27,19 +28,29 @@ test("complete full interview session", async ({ page, request }) => {
     "This is a detailed placeholder answer that should satisfy validation rules cleanly.";
 
   for (let i = 0; i < 5; i += 1) {
-    const currentQuestion = await page.getByRole("heading", { level: 3 }).textContent();
     const textarea = page.locator("textarea");
     await textarea.waitFor({ state: "visible" });
     await textarea.fill(answerText);
+    await expect(textarea).toHaveValue(answerText);
 
-    await page.getByRole("button", { name: /Submit & continue|Complete interview/ }).click();
-    await page.waitForFunction(
-      (previousQuestion) =>
-        window.location.pathname.includes("/results/")
-        || document.querySelector("h3")?.textContent !== previousQuestion,
-      currentQuestion,
+    const submitBtn = page.getByRole("button", { name: /Submit & continue|Complete interview/ });
+    await expect(submitBtn).toBeEnabled();
+    const isLast = (await submitBtn.textContent())?.includes("Complete interview");
+    const answerSubmit = page.waitForResponse(
+      (res) =>
+        res.url().includes("/answers")
+        && res.request().method() === "POST"
+        && res.status() === 200,
     );
-    if ((await page.url()).includes("/results/")) break;
+    await submitBtn.click();
+    await answerSubmit;
+
+    if (isLast) {
+      await page.waitForURL(/\/results\/\d+$/);
+      break;
+    }
+
+    await expect(page.getByText(new RegExp(`^${i + 1}/5$`))).toBeVisible();
   }
 
   await expect(page).toHaveURL(/\/results\/\d+$/);

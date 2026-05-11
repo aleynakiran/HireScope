@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("results page shows overall score", async ({ page, request }) => {
+  test.setTimeout(120_000);
   const email = `results_${Date.now()}@test.dev`;
   const password = "password123";
   const baseURL = process.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -24,16 +25,28 @@ test("results page shows overall score", async ({ page, request }) => {
 
   const answer = "This answer includes concrete details and examples to pass minimum validation.";
   for (let i = 0; i < 5; i += 1) {
-    const currentQuestion = await page.getByRole("heading", { level: 3 }).textContent();
-    await page.locator("textarea").fill(answer);
-    await page.getByRole("button", { name: /Submit & continue|Complete interview/ }).click();
-    await page.waitForFunction(
-      (previousQuestion) =>
-        window.location.pathname.includes("/results/")
-        || document.querySelector("h3")?.textContent !== previousQuestion,
-      currentQuestion,
+    const textarea = page.locator("textarea");
+    await textarea.fill(answer);
+    await expect(textarea).toHaveValue(answer);
+
+    const submitBtn = page.getByRole("button", { name: /Submit & continue|Complete interview/ });
+    await expect(submitBtn).toBeEnabled();
+    const isLast = (await submitBtn.textContent())?.includes("Complete interview");
+    const answerSubmit = page.waitForResponse(
+      (res) =>
+        res.url().includes("/answers")
+        && res.request().method() === "POST"
+        && res.status() === 200,
     );
-    if ((await page.url()).includes("/results/")) break;
+    await submitBtn.click();
+    await answerSubmit;
+
+    if (isLast) {
+      await page.waitForURL(/\/results\/\d+$/);
+      break;
+    }
+
+    await expect(page.getByText(new RegExp(`^${i + 1}/5$`))).toBeVisible();
   }
 
   await expect(page).toHaveURL(/\/results\/\d+$/);

@@ -16,13 +16,13 @@ export default defineConfig({
     {
       command: `cd ../backend && TESTING=1 SECRET_KEY=test-secret-key python3 -m uvicorn main:app --host ${frontendHost} --port ${backendPort}`,
       url: `http://${frontendHost}:${backendPort}/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
       command: `npm run dev -- --host ${frontendHost} --port ${frontendPort}`,
       url: `http://${frontendHost}:${frontendPort}`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
       env: {
         ...process.env,

@@ -2,8 +2,8 @@ import fs from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("results page visual regression", async ({ page, request }, testInfo) => {
-  test.skip(!fs.existsSync(testInfo.snapshotPath("results-page.png")), "Visual baseline missing for this platform.");
-
+test.skip(!fs.existsSync(testInfo.snapshotPath("results-page.png")), "Visual baseline missing for this platform.");
+ 
   const email = `visual_${Date.now()}@test.dev`;
   const password = "password123";
   const baseURL = process.env.VITE_API_URL || "http://127.0.0.1:8000";
