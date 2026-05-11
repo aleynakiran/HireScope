@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiBaseURL, apiClient } from "../api/client";
+import { apiClient } from "../api/client";
+import OAuthButtons from "../components/OAuthButtons";
 import { useAuth } from "../context/AuthContext";
 import { formatApiError } from "../utils/formatApiError";
 
@@ -89,20 +90,7 @@ export default function Register() {
 
         {error ? <div className="error-message">{error}</div> : null}
 
-        <div className="oauth-row">
-          <a className="oauth-btn" data-testid="google-login-btn" href={`${apiBaseURL}/oauth/google`}>
-            Continue with Google
-          </a>
-          <a className="oauth-btn" data-testid="github-login-btn" href={`${apiBaseURL}/oauth/github`}>
-            Continue with GitHub
-          </a>
-          <a className="oauth-btn" data-testid="linkedin-login-btn" href={`${apiBaseURL}/oauth/linkedin`}>
-            Continue with LinkedIn
-          </a>
-          <a className="oauth-btn" data-testid="discord-login-btn" href={`${apiBaseURL}/oauth/discord`}>
-            Continue with Discord
-          </a>
-        </div>
+        <OAuthButtons />
 
         <p className="muted" style={{ marginTop: 14 }}>
           Already have an account? <Link to="/login">Login</Link>
