@@ -7,7 +7,7 @@ HireScope is a SaaS-style technical interview practice platform: AI-generated qu
 - **Backend**: FastAPI + SQLModel (SQLite locally, Postgres-ready via `DATABASE_URL`)
 - **Frontend**: React + Vite + React Router + Axios + Recharts
 - **Tests**: `pytest` (+ coverage gate) and Playwright E2E
-- **Deploy**: Docker Compose + Nginx + GitHub Actions deploy workflow (`.github/workflows/deploy.yml`)
+- **Deploy**: Railway (PostgreSQL + backend API + static frontend)
 
 ## Local development
 
@@ -62,26 +62,9 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-## Deployment sketch (VPS)
-
-Docker assets are under `docker/`:
-
-- `docker/Dockerfile.backend`
-- `docker/Dockerfile.frontend`
-- `docker/docker-compose.yml`
-- `docker/nginx.conf`
-
-Example:
-
-```bash
-docker compose -f docker/docker-compose.yml up -d --build
-```
-
-Use `deploy.yml` with repository secrets (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`) for automatic SSH deploy after CI succeeds on `main`.
-
 ## Production demo (Railway)
 
-Deploy uses **three Railway services**: PostgreSQL, backend API, and static frontend. After any deploy, confirm URLs under each service → **Settings → Networking → Public domain** (domains may change if regenerated).
+Production uses **three Railway services**: PostgreSQL, backend API, and static frontend. After any deploy, confirm URLs under each service → **Settings → Networking → Public domain** (domains may change if regenerated).
 
 **Live links** (replace with your current Railway domains if different):
 
@@ -98,6 +81,7 @@ Deploy uses **three Railway services**: PostgreSQL, backend API, and static fron
 - In production, set backend **`FRONTEND_URL`** to the exact frontend origin (HTTPS, no trailing slash unless you intend it). Use comma-separated values if you have multiple origins.
 - OAuth (Google, GitHub, LinkedIn, Discord): each provider’s **authorized redirect URI** must match backend env `*_REDIRECT_URI`, e.g. `https://<backend-host>/oauth/google/callback`.
 - Frontend build-time API base: set **`VITE_API_URL`** and **`VITE_BACKEND_ORIGIN`** to the backend HTTPS origin, then redeploy the frontend so Vite embeds them.
+- Container builds remain available via `docker/Dockerfile.backend` and `docker/Dockerfile.frontend` if you want to reuse them outside Railway.
 
 ### Hocaya / değerlendirme teslimi (kısa metin)
 
