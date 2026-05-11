@@ -8,6 +8,7 @@ from schemas.auth import (
     EmailSendRequest,
     EmailSetupRequest,
     EmailVerifyRequest,
+    LoginSend2FARequest,
     LoginRequest,
     RegisterRequest,
     SmsSendRequest,
@@ -29,6 +30,22 @@ from services.sms_service import issue_sms_otp, send_sms_otp, verify_sms_otp
 from services.twofa_service import verify_totp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _sync_2fa_enabled(user: User) -> None:
+    user.is_2fa_enabled = bool(user.totp_enabled or user.email_otp_enabled or user.sms_otp_enabled)
+
+
+def _pending_2fa_user(temp_token: str, db: Session) -> User:
+    user_id = user_id_from_temp_2fa_token(temp_token)
+    user = db.get(User, user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid verification request")
+    return user
+
+
+def _delivery_http_error(exc: RuntimeError) -> HTTPException:
+    return HTTPException(status_code=503, detail=str(exc))
 
 
 @router.post("/register")
@@ -58,9 +75,19 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
         raise HTTPException(status_code=403, detail="Account is deactivated")
     if user.is_2fa_enabled or user.email_otp_enabled or user.sms_otp_enabled:
         temp = create_temp_token_for_2fa(user.id)
+        available_methods = []
+        if user.totp_enabled or (user.is_2fa_enabled and user.totp_secret):
+            available_methods.append("totp")
+        if user.email_otp_enabled:
+            available_methods.append("email")
+        if user.sms_otp_enabled and user.phone_number:
+            available_methods.append("sms")
+        if not available_methods and user.is_2fa_enabled:
+            available_methods.append("totp")
         return {
             "two_factor_required": True,
-            "totp_required": True,
+            "totp_required": "totp" in available_methods,
+            "available_2fa_methods": available_methods,
             "temp_token": temp,
             "token_type": "pending",
         }
@@ -76,14 +103,11 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
 @router.post("/login/verify-2fa")
 @limiter.limit("10/minute")
 def verify_2fa_login(request: Request, payload: Verify2FARequest, db: Session = Depends(get_db)) -> dict:
-    user_id = user_id_from_temp_2fa_token(payload.temp_token)
-    user = db.get(User, user_id)
-    if not user or not user.is_2fa_enabled:
-        raise HTTPException(status_code=401, detail="Invalid verification request")
+    user = _pending_2fa_user(payload.temp_token, db)
     method = payload.method
     valid = False
     if method == "totp":
-        valid = bool(user.is_2fa_enabled and verify_totp(user.totp_secret, payload.code))
+        valid = bool((user.totp_enabled or user.is_2fa_enabled) and verify_totp(user.totp_secret, payload.code))
     elif method == "email":
         valid = bool(user.email_otp_enabled and verify_email_otp(user.email, payload.code))
     elif method == "sms":
@@ -96,6 +120,35 @@ def verify_2fa_login(request: Request, payload: Verify2FARequest, db: Session = 
         raise HTTPException(status_code=400, detail="Invalid 2FA verification code")
     token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/login/send-2fa")
+@limiter.limit("10/minute")
+async def send_login_2fa_code(
+    request: Request,
+    payload: LoginSend2FARequest,
+    db: Session = Depends(get_db),
+):
+    user = _pending_2fa_user(payload.temp_token, db)
+
+    if payload.method == "email":
+        if not user.email_otp_enabled:
+            raise HTTPException(status_code=400, detail="Email OTP is not enabled")
+        otp = issue_email_otp(user.email)
+        try:
+            await send_email_otp(user.email, otp)
+        except RuntimeError as exc:
+            raise _delivery_http_error(exc) from exc
+        return {"message": "Email OTP sent"}
+
+    if not user.sms_otp_enabled or not user.phone_number:
+        raise HTTPException(status_code=400, detail="SMS OTP is not enabled")
+    otp = issue_sms_otp(user.phone_number)
+    try:
+        await send_sms_otp(user.phone_number, otp)
+    except RuntimeError as exc:
+        raise _delivery_http_error(exc) from exc
+    return {"message": "SMS OTP sent"}
 
 
 @router.post("/2fa/totp/setup")
@@ -118,8 +171,8 @@ def verify_totp_setup(
 ):
     if not current_user.totp_secret or not verify_totp(current_user.totp_secret, body.otp):
         raise HTTPException(status_code=400, detail="Invalid TOTP code")
-    current_user.is_2fa_enabled = True
     current_user.totp_enabled = True
+    _sync_2fa_enabled(current_user)
     db.add(current_user)
     db.commit()
     return {"message": "TOTP 2FA enabled"}
@@ -130,6 +183,7 @@ def setup_email_2fa(
     payload: EmailSetupRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     current_user.email_otp_enabled = payload.enabled
+    _sync_2fa_enabled(current_user)
     db.add(current_user)
     db.commit()
     return {"message": "Email OTP updated", "enabled": current_user.email_otp_enabled}
@@ -141,7 +195,10 @@ async def send_email_2fa(request: Request, payload: EmailSendRequest, current_us
     if not current_user.email_otp_enabled:
         raise HTTPException(status_code=400, detail="Email OTP is not enabled")
     otp = issue_email_otp(current_user.email)
-    await send_email_otp(current_user.email, otp)
+    try:
+        await send_email_otp(current_user.email, otp)
+    except RuntimeError as exc:
+        raise _delivery_http_error(exc) from exc
     return {"message": "Email OTP sent"}
 
 
@@ -156,6 +213,7 @@ def verify_email_2fa(body: EmailVerifyRequest, current_user: User = Depends(get_
 def setup_sms_2fa(payload: SmsSetupRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     current_user.phone_number = payload.phone_number
     current_user.sms_otp_enabled = True
+    _sync_2fa_enabled(current_user)
     db.add(current_user)
     db.commit()
     return {"message": "SMS OTP enabled", "phone_number": current_user.phone_number}
@@ -167,7 +225,10 @@ async def send_sms_2fa(request: Request, payload: SmsSendRequest, current_user: 
     if not current_user.sms_otp_enabled or not current_user.phone_number:
         raise HTTPException(status_code=400, detail="SMS OTP is not enabled")
     otp = issue_sms_otp(current_user.phone_number)
-    await send_sms_otp(current_user.phone_number, otp)
+    try:
+        await send_sms_otp(current_user.phone_number, otp)
+    except RuntimeError as exc:
+        raise _delivery_http_error(exc) from exc
     return {"message": "SMS OTP sent"}
 
 

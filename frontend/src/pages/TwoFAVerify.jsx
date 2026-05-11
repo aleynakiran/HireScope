@@ -37,13 +37,18 @@ export default function TwoFAVerify() {
   async function sendOtp() {
     setError("");
     setInfo("");
+    const tempToken = sessionStorage.getItem("twofa_temp_token");
+    if (!tempToken) {
+      setError("Missing temporary token. Please login again.");
+      return;
+    }
     try {
-      if (method === "email") {
-        await apiClient.post("/auth/2fa/email/send", {});
-        setInfo("Email OTP sent.");
-      } else if (method === "sms") {
-        await apiClient.post("/auth/2fa/sms/send", {});
-        setInfo("SMS OTP sent.");
+      if (method === "email" || method === "sms") {
+        const res = await apiClient.post("/auth/login/send-2fa", {
+          temp_token: tempToken,
+          method,
+        });
+        setInfo(res.data.message || `${method.toUpperCase()} OTP sent.`);
       }
     } catch (err) {
       setError(formatApiError(err, "Could not send OTP"));

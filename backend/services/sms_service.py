@@ -1,3 +1,4 @@
+import asyncio
 import os
 import random
 import string
@@ -34,12 +35,22 @@ def verify_sms_otp(phone_number: str, otp: str) -> bool:
     return True
 
 
+def sms_delivery_configured() -> bool:
+    return all(
+        os.getenv(name, "").strip()
+        for name in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE")
+    )
+
+
 async def send_sms_otp(phone_number: str, otp: str) -> None:
     sid = os.getenv("TWILIO_ACCOUNT_SID")
     token = os.getenv("TWILIO_AUTH_TOKEN")
     sender = os.getenv("TWILIO_PHONE")
     if not sid or not token or not sender:
-        # Local no-op if Twilio is not configured.
-        return
-    client = Client(sid, token)
-    client.messages.create(body=f"HireScope 2FA code: {otp}", from_=sender, to=phone_number)
+        raise RuntimeError("SMS OTP delivery is not configured")
+
+    def _send() -> None:
+        client = Client(sid, token)
+        client.messages.create(body=f"HireScope 2FA code: {otp}", from_=sender, to=phone_number)
+
+    await asyncio.to_thread(_send)

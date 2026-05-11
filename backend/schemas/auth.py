@@ -35,6 +35,19 @@ class Verify2FARequest(BaseModel):
         return self
 
 
+class LoginSend2FARequest(BaseModel):
+    temp_token: str
+    method: str = Field(default="email")
+
+    @field_validator("method")
+    @classmethod
+    def validate_method(cls, value: str) -> str:
+        allowed = {"email", "sms"}
+        if value not in allowed:
+            raise ValueError(f"Invalid send method. Allowed: {', '.join(sorted(allowed))}")
+        return value
+
+
 class EmailSetupRequest(BaseModel):
     enabled: bool = True
 
