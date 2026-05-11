@@ -79,6 +79,38 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 Use `deploy.yml` with repository secrets (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`) for automatic SSH deploy after CI succeeds on `main`.
 
+## Production demo (Railway)
+
+Deploy uses **three Railway services**: PostgreSQL, backend API, and static frontend. After any deploy, confirm URLs under each service → **Settings → Networking → Public domain** (domains may change if regenerated).
+
+**Live links** (replace with your current Railway domains if different):
+
+| What | URL |
+|------|-----|
+| **Frontend (SPA)** | https://frontend-service-production-551d.up.railway.app |
+| **Backend health** | https://hirescope-production-1130.up.railway.app/health |
+| **API docs (Swagger)** | https://hirescope-production-1130.up.railway.app/docs |
+| **OpenAPI JSON** | https://hirescope-production-1130.up.railway.app/openapi.json |
+
+**Notes**
+
+- A `GET` on the backend **root `/`** may return `{"detail":"Not Found"}` — that is normal; use `/health`, `/docs`, or API routes under `/auth`, `/sessions`, etc.
+- In production, set backend **`FRONTEND_URL`** to the exact frontend origin (HTTPS, no trailing slash unless you intend it). Use comma-separated values if you have multiple origins.
+- OAuth (Google, GitHub, LinkedIn, Discord): each provider’s **authorized redirect URI** must match backend env `*_REDIRECT_URI`, e.g. `https://<backend-host>/oauth/google/callback`.
+- Frontend build-time API base: set **`VITE_API_URL`** and **`VITE_BACKEND_ORIGIN`** to the backend HTTPS origin, then redeploy the frontend so Vite embeds them.
+
+### Hocaya / değerlendirme teslimi (kısa metin)
+
+Aşağıdakileri e-posta veya rapora yapıştırabilirsin (linkleri kendi güncel Railway domain’lerinle değiştir):
+
+> **Canlı demo:** Uygulama Railway üzerinde yayında.  
+> **Arayüz:** https://frontend-service-production-551d.up.railway.app  
+> **API sağlık kontrolü:** https://hirescope-production-1130.up.railway.app/health  
+> **API dokümantasyonu:** https://hirescope-production-1130.up.railway.app/docs  
+> **Kaynak kod:** Bu GitHub deposu (`main` branch).  
+> **Deneme akışı:** Kayıt → giriş → yeni mülakat → soruları cevapla → sonuçlar.  
+> **Not:** Backend kök adresi (`/`) boş dönebilir; asıl giriş noktası `/health` ve `/docs` ile SPA URL’sidir. OAuth kullanımı için sağlayıcı panellerinde callback URL’lerinin prod backend ile eşleşmesi gerekir.
+
 ## CI
 
 GitHub Actions runs backend tests with coverage gating, builds the frontend, then runs Playwright against local servers.
