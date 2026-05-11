@@ -90,6 +90,18 @@ def on_startup() -> None:
                 session.commit()
 
 
+@app.get("/")
+def root() -> dict:
+    """Public entry when someone opens the API host in a browser (e.g. Railway URL)."""
+    return {
+        "service": app.title,
+        "version": app.version,
+        "health": "/health",
+        "docs": "/docs",
+        "openapi": "/openapi.json",
+    }
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
