@@ -1,18 +1,21 @@
 import os
 import sqlite3
+import tempfile
 from typing import Generator
 
-from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
 TESTING = os.getenv("TESTING") == "1"
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./hirescope.db")
+TEST_DATABASE_PATH = os.path.join(tempfile.gettempdir(), f"hirescope-test-{os.getpid()}.db")
 
 if TESTING:
+    if os.path.exists(TEST_DATABASE_PATH):
+        os.remove(TEST_DATABASE_PATH)
     engine = create_engine(
-        "sqlite://",
+        f"sqlite:///{TEST_DATABASE_PATH}",
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
+        echo=False,
     )
 else:
     engine = create_engine(DATABASE_URL, echo=False)

@@ -18,9 +18,10 @@ test("login flow works", async ({ page, request }) => {
   await page.goto("/login");
   await page.locator('[name="email"]').fill(email);
   await page.locator('[name="password"]').fill(password);
-  await page.locator('button[type="submit"]').click();
-
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await Promise.all([
+    page.waitForURL(/\/dashboard$/, { timeout: 15_000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
 });
 
 test("google oauth button is visible on login page", async ({ page }) => {

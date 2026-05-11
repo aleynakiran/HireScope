@@ -12,10 +12,13 @@ test("invalid totp code shows error message", async ({ page, request }) => {
   await page.goto("/login");
   await page.locator('[name="email"]').fill(email);
   await page.locator('[name="password"]').fill(password);
-  await page.locator('button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(/\/dashboard$/, { timeout: 15_000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
 
   await page.goto("/2fa-setup");
-  await page.getByRole("button", { name: "Generate QR code" }).click();
+  await page.getByRole("button", { name: "Setup TOTP (QR)" }).click();
   await expect(page.locator('[data-testid="qr-code-img"]')).toBeVisible();
 
   await page.goto("/2fa-verify");

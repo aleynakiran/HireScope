@@ -12,8 +12,10 @@ test("complete full interview session", async ({ page, request }) => {
   await page.goto("/login");
   await page.locator('[name="email"]').fill(email);
   await page.locator('[name="password"]').fill(password);
-  await page.locator('button[type="submit"]').click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await Promise.all([
+    page.waitForURL(/\/dashboard$/, { timeout: 15_000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
 
   await page.goto("/sessions/new");
   await page.locator('input[type="checkbox"]').first().check();
@@ -25,13 +27,19 @@ test("complete full interview session", async ({ page, request }) => {
     "This is a detailed placeholder answer that should satisfy validation rules cleanly.";
 
   for (let i = 0; i < 5; i += 1) {
+    const currentQuestion = await page.getByRole("heading", { level: 3 }).textContent();
     const textarea = page.locator("textarea");
     await textarea.waitFor({ state: "visible" });
     await textarea.fill(answerText);
 
     await page.getByRole("button", { name: /Submit & continue|Complete interview/ }).click();
-
-    if ((await page.url()).includes("/results")) break;
+    await page.waitForFunction(
+      (previousQuestion) =>
+        window.location.pathname.includes("/results/")
+        || document.querySelector("h3")?.textContent !== previousQuestion,
+      currentQuestion,
+    );
+    if ((await page.url()).includes("/results/")) break;
   }
 
   await expect(page).toHaveURL(/\/results\/\d+$/);
