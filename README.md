@@ -77,7 +77,7 @@ Production uses **three Railway services**: PostgreSQL, backend API, and static 
 
 **Notes**
 
-- A `GET` on the backend **root `/`** may return `{"detail":"Not Found"}` — that is normal; use `/health`, `/docs`, or API routes under `/auth`, `/sessions`, etc.
+- A `GET` on the backend **root `/`** returns a small JSON landing payload with links to `/health`, `/docs`, and `/openapi.json`.
 - In production, set backend **`FRONTEND_URL`** to the exact frontend origin (HTTPS, no trailing slash unless you intend it). Use comma-separated values if you have multiple origins.
 - OAuth (Google, GitHub, LinkedIn, Discord): each provider’s **authorized redirect URI** must match backend env `*_REDIRECT_URI`, e.g. `https://<backend-host>/oauth/google/callback`.
 - Frontend build-time API base: set **`VITE_API_URL`** and **`VITE_BACKEND_ORIGIN`** to the backend HTTPS origin, then redeploy the frontend so Vite embeds them.
@@ -93,7 +93,7 @@ Aşağıdakileri e-posta veya rapora yapıştırabilirsin (linkleri kendi günce
 > **API dokümantasyonu:** https://hirescope-production-1130.up.railway.app/docs  
 > **Kaynak kod:** Bu GitHub deposu (`main` branch).  
 > **Deneme akışı:** Kayıt → giriş → yeni mülakat → soruları cevapla → sonuçlar.  
-> **Not:** Backend kök adresi (`/`) boş dönebilir; asıl giriş noktası `/health` ve `/docs` ile SPA URL’sidir. OAuth kullanımı için sağlayıcı panellerinde callback URL’lerinin prod backend ile eşleşmesi gerekir.
+> **Not:** Backend kök (`/`) API özet JSON’u döner; ayrıca `/health` ve `/docs` kullanılabilir. OAuth için sağlayıcı panellerinde callback URL’lerinin prod backend ile eşleşmesi gerekir.
 
 ## CI
 
@@ -101,9 +101,33 @@ GitHub Actions runs backend tests with coverage gating, builds the frontend, the
 
 ## Screenshots
 
-Add project screenshots under `screenshots/` for presentation and README embedding:
+Place UI captures under `screenshots/` (for slides / instructor handoff). Suggested filenames:
 
-- `screenshots/dashboard.png`
-- `screenshots/interview.png`
-- `screenshots/results.png`
-- `screenshots/admin.png`
+| File | What to show |
+|------|----------------|
+| `login.png` | Login + social OAuth buttons |
+| `dashboard.png` | Logged-in dashboard, charts, session list |
+| `interview.png` | New interview / question flow |
+| `results.png` | Results summary, rubric, per-question feedback |
+| `admin.png` | Admin dashboard (roles / audit if applicable) |
+| `security-rate-limit-429.png` | DevTools Network: `POST /auth/login` → **429** |
+| `security-railway-variables.png` | Railway service variables (values masked) |
+| `security-headers-backend.png` | [securityheaders.com](https://securityheaders.com) scan of **backend** URL (e.g. `/health`) |
+
+### Bundled diagnostics (from Cursor `assets/`)
+
+These three files were copied into `screenshots/` for ops/security context:
+
+**Google OAuth configuration error (example `redirect_uri_mismatch`):**
+
+![Google OAuth error](./screenshots/security-google-oauth-error.png)
+
+**Railway deploy log (runtime error trace):**
+
+![Railway deploy log](./screenshots/ops-railway-deploy-log.png)
+
+**Railway HTTP access log (e.g. OAuth callback status codes):**
+
+![Railway HTTP logs](./screenshots/ops-railway-http-logs.png)
+
+> **Note:** Only the PNGs present under the Cursor project `assets/` folder were copied. Add the table screenshots above (or drop more files into `assets/` and copy them) so the README can embed the full product walkthrough.
