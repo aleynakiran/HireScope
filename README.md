@@ -148,3 +148,7 @@ Running app (files in [`screenshots/`](./screenshots/)):
 **Frontend — Playwright E2E summary**
 
 ![Playwright E2E](./screenshots/Playwright.png)
+
+**GitHub Actions — successful `CI` run on `main` (backend tests, frontend build, Playwright)**
+
+![GitHub Actions CI success](./screenshots/github-actions-ci-success.png)
