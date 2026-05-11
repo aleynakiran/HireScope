@@ -138,3 +138,13 @@ Running app (files in [`screenshots/`](./screenshots/)):
 **Railway — HireScope service variables (masked values)**
 
 ![Railway variables](./screenshots/railway_hireScope_Variables.png)
+
+### Tests & coverage (local / CI evidence)
+
+**Backend — `pytest` with `--cov-fail-under=90`**
+
+![Pytest coverage](./screenshots/pytest-coverage-90.png)
+
+**Frontend — Playwright E2E summary**
+
+![Playwright E2E](./screenshots/Playwright.png)
