@@ -151,4 +151,4 @@ Running app (files in [`screenshots/`](./screenshots/)):
 
 **GitHub Actions — successful `CI` run on `main` (backend tests, frontend build, Playwright)**
 
-![GitHub Actions CI success](./screenshots/github-actions-ci-success.png)
+![GitHub Actions CI success](./screenshots/GitHubActions.png)
