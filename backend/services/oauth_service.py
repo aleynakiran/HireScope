@@ -27,7 +27,11 @@ oauth.register(
     client_id=os.getenv("LINKEDIN_CLIENT_ID", ""),
     client_secret=os.getenv("LINKEDIN_CLIENT_SECRET", ""),
     server_metadata_url="https://www.linkedin.com/oauth/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid profile email"},
+    client_kwargs={
+        "scope": "openid profile email",
+        # LinkedIn expects client_id/client_secret in POST body, not HTTP Basic (metadata often omits this).
+        "token_endpoint_auth_method": "client_secret_post",
+    },
 )
 
 oauth.register(
