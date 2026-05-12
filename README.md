@@ -82,19 +82,6 @@ Production uses **three Railway services**: PostgreSQL, backend API, and static 
 - OAuth (Google, GitHub, LinkedIn, Discord): each provider’s **authorized redirect URI** must match backend env `*_REDIRECT_URI`, e.g. `https://<backend-host>/oauth/google/callback`.
 - Frontend build-time API base: set **`VITE_API_URL`** and **`VITE_BACKEND_ORIGIN`** to the backend HTTPS origin, then redeploy the frontend so Vite embeds them.
 - Container builds remain available via `docker/Dockerfile.backend` and `docker/Dockerfile.frontend` if you want to reuse them outside Railway.
-
-### Hocaya / değerlendirme teslimi (kısa metin)
-
-Aşağıdakileri e-posta veya rapora yapıştırabilirsin (linkleri kendi güncel Railway domain’lerinle değiştir):
-
-> **Canlı demo:** Uygulama Railway üzerinde yayında.  
-> **Arayüz:** https://frontend-service-production-551d.up.railway.app  
-> **API sağlık kontrolü:** https://hirescope-production-1130.up.railway.app/health  
-> **API dokümantasyonu:** https://hirescope-production-1130.up.railway.app/docs  
-> **Kaynak kod:** Bu GitHub deposu (`main` branch).  
-> **Deneme akışı:** Kayıt → giriş → yeni mülakat → soruları cevapla → sonuçlar.  
-> **Not:** Backend kök (`/`) API özet JSON’u döner; ayrıca `/health` ve `/docs` kullanılabilir. OAuth için sağlayıcı panellerinde callback URL’lerinin prod backend ile eşleşmesi gerekir.
-
 ## CI
 
 GitHub Actions runs backend tests with coverage gating, builds the frontend, then runs Playwright against local servers.
