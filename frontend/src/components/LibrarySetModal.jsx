@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { expandLibraryQuestions } from "../utils/libraryQuestions";
 
 export default function LibrarySetModal({ librarySet, onClose }) {
   useEffect(() => {
@@ -9,6 +10,11 @@ export default function LibrarySetModal({ librarySet, onClose }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [librarySet, onClose]);
+
+  const questionLines = useMemo(
+    () => (librarySet ? expandLibraryQuestions(librarySet) : []),
+    [librarySet]
+  );
 
   if (!librarySet) return null;
 
@@ -39,17 +45,17 @@ export default function LibrarySetModal({ librarySet, onClose }) {
           {librarySet.summary}
         </p>
 
-        <strong style={{ fontSize: 13 }}>Sample questions</strong>
+        <strong style={{ fontSize: 13 }}>Questions ({questionLines.length})</strong>
         <ol style={{ margin: "10px 0 0", paddingLeft: 20 }}>
-          {librarySet.items.map((q) => (
-            <li key={q} style={{ marginBottom: 10, lineHeight: 1.55 }}>
+          {questionLines.map((q, idx) => (
+            <li key={idx} style={{ marginBottom: 10, lineHeight: 1.55 }}>
               {q}
             </li>
           ))}
         </ol>
 
         <p className="muted" style={{ margin: "16px 0 0", fontSize: 12, lineHeight: 1.55 }}>
-          Preview only — use <strong>New interview</strong> for AI-generated questions matched to your role and tech
+          Library preview — use <strong>New interview</strong> for AI-generated questions matched to your role and tech
           stack.
         </p>
       </div>
