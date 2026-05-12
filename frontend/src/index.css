@@ -264,6 +264,27 @@ a:hover {
   color: var(--muted);
 }
 
+button.pill.library-filter-btn {
+  cursor: pointer;
+  font: inherit;
+}
+
+button.pill.library-filter-btn:hover {
+  border-color: color-mix(in oklab, var(--accent-2) 40%, var(--border));
+  color: var(--text);
+}
+
+button.pill.library-filter-btn.is-active {
+  background: color-mix(in oklab, var(--accent-2) 20%, var(--surface));
+  border-color: var(--accent-2);
+  color: var(--text);
+  font-weight: 650;
+}
+
+:root[data-theme="light"] button.pill.library-filter-btn.is-active {
+  background: color-mix(in oklab, var(--accent-2) 22%, #fff);
+}
+
 .oauth-row {
   display: grid;
   grid-template-columns: 1fr;
